@@ -1,47 +1,39 @@
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 import joblib
 
 # Load dataset
 df = pd.read_csv("Employee.csv")
 
-# Target column
-target_col = "LeaveOrNot"
-if target_col not in df.columns:
-    raise ValueError(f"Target column '{target_col}' not found in dataset!")
+# Define features and target
+X = df.drop("LeaveOrNot", axis=1)
+y = df["LeaveOrNot"]
 
-# Separate features and target
-X = df.drop(columns=[target_col])
-y = df[target_col]
+# One-hot encode categorical variables
+categorical_cols = X.select_dtypes(include=['object']).columns
+encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+X_encoded = encoder.fit_transform(X[categorical_cols])
+X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out(categorical_cols))
 
-# Identify categorical columns
-categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
+# Combine with numerical columns
+X_numeric = X.drop(columns=categorical_cols).reset_index(drop=True)
+X_final = pd.concat([X_numeric, X_encoded_df], axis=1)
 
-# Define preprocessor
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
-    ],
-    remainder='passthrough'  # Keep other (numerical) columns
-)
-
-# Build pipeline
-pipeline = Pipeline(steps=[
-    ('preprocessor', preprocessor),
-    ('classifier', DecisionTreeClassifier())
-])
-
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X_final, y, test_size=0.2, random_state=42)
 
 # Train model
-pipeline.fit(X_train, y_train)
+model = DecisionTreeClassifier()
+model.fit(X_train, y_train)
 
-# Save model
-joblib.dump(pipeline, "model.pkl")
-print("Model saved as model.pkl")
+# Evaluate
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
+
+# Save model and encoder
+joblib.dump(model, "model.pkl")
+joblib.dump(encoder, "encoder.pkl")
