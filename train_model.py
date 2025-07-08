@@ -1,47 +1,39 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer, make_column_transformer
-from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
-import joblib
-
-# 1. Load and prepare data
-df = pd.read_csv("Employee.csv")
-
-# Convert target to binary (if not already)
-df['LeaveOrNot'] = df['LeaveOrNot'].map({'Yes': 1, 'No': 0})
-
-# 2. Define features and target
+fromtarget
 X = df.drop("LeaveOrNot", axis=1)
 y = df["LeaveOrNot"]
+ sklearn.metrics import accuracy_score
+import joblib
 
-# 3. Identify column types
+# Load dataset
+df = pd.read_csv("Employee.csv")
+
+# Define features and 
+# One-hot encode categorical variables
 categorical_cols = X.select_dtypes(include=['object']).columns
-numeric_cols = X.select_dtypes(include=['int64', 'float64']).columns
+encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+X_encoded = encoder.fit_transform(X[categorical_cols])
+X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out(categorical_cols))
 
-# 4. Create preprocessing pipeline
-preprocessor = make_column_transformer(
-    (OneHotEncoder(handle_unknown='ignore'), categorical_cols),
-    remainder='passthrough'
-)
+# Combine with numerical columns
+X_numeric = X.drop(columns=categorical_cols).reset_index(drop=True)
+X_final = pd.concat([X_numeric, X_encoded_df], axis=1)
 
-# 5. Create full pipeline
-model = Pipeline([
-    ('preprocessor', preprocessor),
-    ('classifier', DecisionTreeClassifier())
-])
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X_final, y, test_size=0.2, random_state=42)
 
-# 6. Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# 7. Train model
+# Train model
+model = DecisionTreeClassifier()
 model.fit(X_train, y_train)
 
-# 8. Evaluate
+# Evaluate
 y_pred = model.predict(X_test)
-print("Accuracy:", accuracy_score(y_test, y_pred))
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
 
-# 9. Save the complete pipeline
+# Save model and encoder
 joblib.dump(model, "model.pkl")
+joblib.dump(encoder, "encoder.pkl")
