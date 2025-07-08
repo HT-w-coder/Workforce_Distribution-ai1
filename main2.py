@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import sklearn
+import streamlit as st
+st.write("Scikit-learn version:", sklearn.__version__)
+
 
 # Load the model and encoders
 model = joblib.load("model.pkl")
