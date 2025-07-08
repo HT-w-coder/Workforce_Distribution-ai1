@@ -1,39 +1,46 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.tree import DecisionTreeClassifier
-fromtarget
-X = df.drop("LeaveOrNot", axis=1)
-y = df["LeaveOrNot"]
- sklearn.metrics import accuracy_score
 import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 # Load dataset
 df = pd.read_csv("Employee.csv")
 
-# Define features and 
-# One-hot encode categorical variables
-categorical_cols = X.select_dtypes(include=['object']).columns
-encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
-X_encoded = encoder.fit_transform(X[categorical_cols])
-X_encoded_df = pd.DataFrame(X_encoded, columns=encoder.get_feature_names_out(categorical_cols))
+# Drop any unnecessary columns
+if 'Employee ID' in df.columns:
+    df.drop("Employee ID", axis=1, inplace=True)
 
-# Combine with numerical columns
-X_numeric = X.drop(columns=categorical_cols).reset_index(drop=True)
-X_final = pd.concat([X_numeric, X_encoded_df], axis=1)
+# Define target and features
+X = df.drop("LeaveOrNot", axis=1)
+y = df["LeaveOrNot"]
 
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(X_final, y, test_size=0.2, random_state=42)
+# Identify categorical and numerical columns
+categorical_cols = ["Gender", "EverBenched", "City", "Education"]
+numerical_cols = ["JoiningYear", "PaymentTier", "Age", "ExperienceInCurrentDomain"]
 
-# Train model
-model = DecisionTreeClassifier()
-model.fit(X_train, y_train)
+# Preprocessing pipeline
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
+        ("num", StandardScaler(), numerical_cols),
+    ]
+)
 
-# Evaluate
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print("Accuracy:", accuracy)
+# Full pipeline: preprocessing + model
+clf = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("classifier", DecisionTreeClassifier(random_state=42))
+])
 
-# Save model and encoder
-joblib.dump(model, "model.pkl")
-joblib.dump(encoder, "encoder.pkl")
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Fit model
+clf.fit(X_train, y_train)
+
+# Save entire pipeline to disk
+joblib.dump(clf, "model.pkl")
+print("✅ Model pipeline trained and saved as model.pkl")
