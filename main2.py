@@ -1,43 +1,44 @@
-# train_model.py
-
+import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
 import joblib
 
-# Load dataset
-df = pd.read_csv("Employee.csv")
+# Load model (Pipeline: Preprocessing + Classifier)
+model = joblib.load("model.pkl")
 
-# Define target and features
-X = df.drop(columns=["LeaveOrNot"])
-y = df["LeaveOrNot"]
+st.set_page_config(page_title="Workforce Distribution AI", layout="centered")
+st.title("🌟 Workforce Distribution AI")
+st.markdown("Predict whether an employee will **leave** or **stay**.")
 
-# Define categorical and numerical columns
-categorical_cols = ["Gender", "EverBenched", "City", "Education"]
-numerical_cols = ["JoiningYear", "PaymentTier", "Age", "ExperienceInCurrentDomain"]
+# Collect inputs from user
+gender = st.selectbox("Gender", ["Male", "Female"])
+ever_benched = st.selectbox("Ever Benched", ["Yes", "No"])
+city = st.selectbox("City", ["Bangalore", "Pune", "New Delhi"])
+education = st.selectbox("Education", ["Bachelors", "Masters", "PHD"])
+joining_year = st.slider("Joining Year", 2012, 2018)
+payment_tier = st.selectbox("Payment Tier", [1, 2, 3])
+age = st.slider("Age", 20, 60)
+experience = st.slider("Experience in Current Domain", 0, 10)
 
-# Preprocessing
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical_cols)
-    ],
-    remainder="passthrough"
-)
+# Format into DataFrame
+input_data = pd.DataFrame([{
+    "Gender": gender,
+    "EverBenched": ever_benched,
+    "City": city,
+    "Education": education,
+    "JoiningYear": joining_year,
+    "PaymentTier": payment_tier,
+    "Age": age,
+    "ExperienceInCurrentDomain": experience
+}])
 
-# Full pipeline
-pipeline = Pipeline(steps=[
-    ("preprocessor", preprocessor),
-    ("classifier", DecisionTreeClassifier(random_state=42))
-])
-
-# Split dataset
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Train model
-pipeline.fit(X_train, y_train)
-
-# Save full model pipeline
-joblib.dump(pipeline, "model.pkl")
+# Predict when button clicked
+if st.button("Predict"):
+    try:
+        prediction = model.predict(input_data)[0]
+        st.subheader("Prediction")
+        if prediction == 1:
+            st.error("⚠️ The employee is likely to **leave**.")
+        else:
+            st.success("✅ The employee is likely to **stay**.")
+    except Exception as e:
+        st.error(f"❌ Error during prediction:\n{str(e)}")
