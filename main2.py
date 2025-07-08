@@ -31,6 +31,13 @@ input_data = pd.DataFrame([{
     "ExperienceInCurrentDomain": experience
 }])
 
+# Preprocess input data if necessary
+# Example: Convert categorical variables to numerical if your model requires it
+input_data['Gender'] = input_data['Gender'].map({'Male': 0, 'Female': 1})
+input_data['EverBenched'] = input_data['EverBenched'].map({'Yes': 1, 'No': 0})
+input_data['City'] = input_data['City'].map({'Bangalore': 0, 'Pune': 1, 'New Delhi': 2})
+input_data['Education'] = input_data['Education'].map({'Bachelors': 0, 'Masters': 1, 'PHD': 2})
+
 # Predict when button clicked
 if st.button("Predict"):
     try:
