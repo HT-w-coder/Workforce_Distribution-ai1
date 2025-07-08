@@ -1,68 +1,48 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import sklearn
-import streamlit as st
-st.write("Scikit-learn version:", sklearn.__version__)
 
-
-# Load the model and encoders
+# Load model and encoder
 model = joblib.load("model.pkl")
-encoders = joblib.load("encoder.pkl")
+encoder = joblib.load("encoder.pkl")
 
-st.title("Workforce Distribution AI")
+st.set_page_config(page_title="Workforce Distribution AI", layout="centered")
+st.title("🌟 Workforce Distribution AI")
+st.markdown("Predict if an employee will leave or stay.")
 
-# Input fields
-education = st.selectbox("Education", ["Bachelors", "Masters", "PHD"])
-joining_year = st.number_input("Joining Year", min_value=2000, max_value=2025, value=2018)
-city = st.selectbox("City", ["Bangalore", "Pune", "New Delhi"])
-payment_tier = st.selectbox("Payment Tier", [1, 2, 3])
-age = st.number_input("Age", min_value=18, max_value=60, value=30)
-gender = st.selectbox("Gender", ["Male", "Female"])
-ever_benched = st.selectbox("Ever Benched", ["Yes", "No"])
-experience = st.number_input("Experience in Current Domain", min_value=0, max_value=20, value=3)
+# Define the input fields
+Gender = st.selectbox("Gender", ["Male", "Female"])
+EverBenched = st.selectbox("Ever Benched", ["Yes", "No"])
+City = st.selectbox("City", ["Bangalore", "Pune", "New Delhi"])
+Education = st.selectbox("Education", ["Bachelors", "Masters", "PHD"])
+JoiningYear = st.selectbox("Joining Year", list(range(2012, 2022)))
+PaymentTier = st.selectbox("Payment Tier", [1, 2, 3])
+Age = st.slider("Age", 20, 60, 30)
+ExperienceInCurrentDomain = st.slider("Experience in Current Domain", 0, 10, 3)
 
-# When user clicks Predict
+# When the user clicks Predict
 if st.button("Predict"):
-    try:
-        # Prepare input
-        input_data = {
-            'Education': encoders['Education'].transform([education])[0],
-            'JoiningYear': joining_year,
-            'City': encoders['City'].transform([city])[0],
-            'PaymentTier': payment_tier,
-            'Age': age,
-            'Gender': encoders['Gender'].transform([gender])[0],
-            'EverBenched': encoders['EverBenched'].transform([ever_benched])[0],
-            'ExperienceInCurrentDomain': experience
-        }
+    input_data = pd.DataFrame([{
+        "Gender": Gender,
+        "EverBenched": EverBenched,
+        "City": City,
+        "Education": Education,
+        "JoiningYear": JoiningYear,
+        "PaymentTier": PaymentTier,
+        "Age": Age,
+        "ExperienceInCurrentDomain": ExperienceInCurrentDomain
+    }])
 
-        input_df = pd.DataFrame([input_data])
+    # Encode categorical variables
+    categorical_cols = ["Gender", "EverBenched", "City", "Education"]
+    encoded_input = encoder.transform(input_data[categorical_cols])
+    encoded_df = pd.DataFrame(encoded_input, columns=encoder.get_feature_names_out(categorical_cols))
+    input_numeric = input_data.drop(columns=categorical_cols).reset_index(drop=True)
+    final_input = pd.concat([input_numeric, encoded_df], axis=1)
 
-        # Predict
-        prediction = model.predict(input_df)[0]
-
-        # Show result
-        st.success("Prediction: Will Leave" if prediction == 1 else "Prediction: Will Stay")
-
-    except Exception as e:
-        st.error(f"Error: {str(e)}")
-import streamlit as st
-import sklearn
-import joblib
-
-st.title("Workforce Distribution AI")
-
-# Display current scikit-learn version
-sk_version = sklearn.__version__
-st.write("Scikit-learn version on this server:", sk_version)
-
-# Prevent loading model if version is incompatible
-if sk_version.startswith("1."):
-    try:
-        model = joblib.load("model.pkl")
-        st.success("Model loaded successfully!")
-    except Exception as e:
-        st.error("Failed to load model. Error: {}".format(e))
-else:
-    st.error("Incompatible scikit-learn version. Please re-train your model.")
+    # Make prediction
+    prediction = model.predict(final_input)[0]
+    if prediction == 1:
+        st.success("✅ The employee is likely to stay.")
+    else:
+        st.warning("⚠️ The employee is likely to leave.")
