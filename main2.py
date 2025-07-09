@@ -1,42 +1,44 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import pickle
+import joblib
 
-# Load model and encoder
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
-with open("encoder.pkl", "rb") as f:
-    encoder = pickle.load(f)
+# Load model (Pipeline: Preprocessing + Classifier)
+model = joblib.load("model.pkl")
 
-st.title("Workforce Distribution AI - Leave Prediction")
+st.set_page_config(page_title="Workforce Distribution AI", layout="centered")
+st.title("🌟 Workforce Distribution AI")
+st.markdown("Predict whether an employee will **leave** or **stay**.")
 
-# Input fields
-satisfaction = st.slider("Satisfaction Level", 0.0, 1.0, 0.5)
-evaluation = st.slider("Last Evaluation", 0.0, 1.0, 0.7)
-number_project = st.number_input("Number of Projects", 1, 10, 3)
-average_monthly_hours = st.number_input("Average Monthly Hours", 90, 310, 160)
-time_spent = st.number_input("Time Spent at Company (Years)", 1, 10, 3)
+# Collect inputs from user
+gender = st.selectbox("Gender", ["Male", "Female"])
+ever_benched = st.selectbox("Ever Benched", ["Yes", "No"])
+city = st.selectbox("City", ["Bangalore", "Pune", "New Delhi"])
+education = st.selectbox("Education", ["Bachelors", "Masters", "PHD"])
+joining_year = st.slider("Joining Year", 2012, 2018)
+payment_tier = st.selectbox("Payment Tier", [1, 2, 3])
+age = st.slider("Age", 20, 60)
+experience = st.slider("Experience in Current Domain", 0, 10)
 
-city = st.selectbox("City", ['Bangalore', 'Pune', 'New Delhi'])
-
-# Prepare numerical and categorical inputs
-numerical_data = pd.DataFrame([{
-    "satisfaction_level": satisfaction,
-    "last_evaluation": evaluation,
-    "number_project": number_project,
-    "average_montly_hours": average_monthly_hours,
-    "time_spend_company": time_spent
+# Format into DataFrame
+input_data = pd.DataFrame([{
+    "Gender": gender,
+    "EverBenched": ever_benched,
+    "City": city,
+    "Education": education,
+    "JoiningYear": joining_year,
+    "PaymentTier": payment_tier,
+    "Age": age,
+    "ExperienceInCurrentDomain": experience
 }])
 
-categorical_data = pd.DataFrame([[city]], columns=["City"])
-cat_encoded = encoder.transform(categorical_data)
-cat_encoded_df = pd.DataFrame(cat_encoded, columns=encoder.get_feature_names_out(["City"]))
-
-# Combine
-final_input = pd.concat([numerical_data, cat_encoded_df], axis=1)
-
-# Prediction
-if st.button("Predict Leave or Not"):
-    prediction = model.predict(final_input)[0]
-    st.success(f"Prediction: {'Will Leave' if prediction == 1 else 'Will Stay'}")
+# Predict when button clicked
+if st.button("Predict"):
+    try:
+        prediction = model.predict(input_data)[0]
+        st.subheader("Prediction")
+        if prediction == 1:
+            st.error("⚠️ The employee is likely to **leave**.")
+        else:
+            st.success("✅ The employee is likely to **stay**.")
+    except Exception as e:
+        st.error(f"❌ Error during prediction:\n{str(e)}")
