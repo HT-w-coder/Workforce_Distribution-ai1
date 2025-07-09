@@ -1,34 +1,37 @@
+import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
 import joblib
-import numpy as np
 
-# Load dataset
-df = pd.read_csv("Employee.csv")
+# Load model pipeline
+model = joblib.load("model.pkl")
 
-# Define target and features
-if "LeaveOrNot" not in df.columns:
-    raise ValueError("Target column 'LeaveOrNot' not found!")
+# App title
+st.title("🌟 Workforce Distribution AI")
+st.write("Predict if an employee will leave or stay (numerical features only).")
 
-X = df.select_dtypes(include=[np.number])  # Only numerical columns
-y = df["LeaveOrNot"]
+# Input form
+with st.form("prediction_form"):
+    JoiningYear = st.number_input("Joining Year", min_value=2000, max_value=2025, value=2015)
+    PaymentTier = st.selectbox("Payment Tier", [1, 2, 3])
+    Age = st.slider("Age", 20, 60, 30)
+    Experience = st.slider("Experience in Current Domain", 0, 10, 2)
+    submitted = st.form_submit_button("Predict")
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Predict if form submitted
+if submitted:
+    try:
+        # Create DataFrame for input
+        input_df = pd.DataFrame([{
+            "JoiningYear": JoiningYear,
+            "PaymentTier": PaymentTier,
+            "Age": Age,
+            "ExperienceInCurrentDomain": Experience
+        }])
+        
+        prediction = model.predict(input_df)[0]
+        result = "✅ Will Stay" if prediction == 0 else "❌ Will Leave"
+        st.subheader("Prediction Result")
+        st.success(result)
 
-# Train model
-model = DecisionTreeClassifier(random_state=42)
-model.fit(X_train, y_train)
-
-# Accuracy
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print("Accuracy:", accuracy)
-
-# Dummy encoder (for compatibility)
-joblib.dump(None, "encoder.pkl")
-
-# Save model
-joblib.dump(model, "model.pkl")
+    except Exception as e:
+        st.error(f"❌ Prediction failed: {e}")
