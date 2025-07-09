@@ -1,37 +1,38 @@
-import streamlit as st
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 import joblib
 
-# Load model pipeline
-model = joblib.load("model.pkl")
+# Load dataset
+df = pd.read_csv("Employee.csv")
 
-# App title
-st.title("🌟 Workforce Distribution AI")
-st.write("Predict if an employee will leave or stay (numerical features only).")
+# Check target
+if "LeaveOrNot" not in df.columns:
+    raise ValueError("Target column 'LeaveOrNot' not found in dataset!")
 
-# Input form
-with st.form("prediction_form"):
-    JoiningYear = st.number_input("Joining Year", min_value=2000, max_value=2025, value=2015)
-    PaymentTier = st.selectbox("Payment Tier", [1, 2, 3])
-    Age = st.slider("Age", 20, 60, 30)
-    Experience = st.slider("Experience in Current Domain", 0, 10, 2)
-    submitted = st.form_submit_button("Predict")
+# Only numeric features
+features = ["JoiningYear", "PaymentTier", "Age", "ExperienceInCurrentDomain"]
+X = df[features]
+y = df["LeaveOrNot"]
 
-# Predict if form submitted
-if submitted:
-    try:
-        # Create DataFrame for input
-        input_df = pd.DataFrame([{
-            "JoiningYear": JoiningYear,
-            "PaymentTier": PaymentTier,
-            "Age": Age,
-            "ExperienceInCurrentDomain": Experience
-        }])
-        
-        prediction = model.predict(input_df)[0]
-        result = "✅ Will Stay" if prediction == 0 else "❌ Will Leave"
-        st.subheader("Prediction Result")
-        st.success(result)
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    except Exception as e:
-        st.error(f"❌ Prediction failed: {e}")
+# Pipeline: Scaling + Model
+pipeline = Pipeline([
+    ("scaler", StandardScaler()),
+    ("clf", DecisionTreeClassifier(random_state=42))
+])
+
+# Train model
+pipeline.fit(X_train, y_train)
+
+# Save model pipeline
+joblib.dump(pipeline, "model.pkl")
+
+# Dummy encoder (not used, but expected by older main2 versions)
+joblib.dump(None, "encoder.pkl")
+
+print("✅ Model saved as model.pkl")
