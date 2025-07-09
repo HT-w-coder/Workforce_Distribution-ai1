@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load model pipeline
+# Load the trained model
 model = joblib.load("model.pkl")
 
-# App title
+# Streamlit UI
 st.title("🌟 Workforce Distribution AI")
-st.write("Predict if an employee will leave or stay (numerical features only).")
+st.write("Predict if an employee will leave or stay (only numerical features).")
 
 # Input form
 with st.form("prediction_form"):
@@ -17,19 +17,19 @@ with st.form("prediction_form"):
     Experience = st.slider("Experience in Current Domain", 0, 10, 2)
     submitted = st.form_submit_button("Predict")
 
-# Predict if form submitted
+# Prediction
 if submitted:
     try:
-        # Create DataFrame for input
         input_df = pd.DataFrame([{
             "JoiningYear": JoiningYear,
             "PaymentTier": PaymentTier,
             "Age": Age,
             "ExperienceInCurrentDomain": Experience
         }])
-        
+
         prediction = model.predict(input_df)[0]
         result = "✅ Will Stay" if prediction == 0 else "❌ Will Leave"
+
         st.subheader("Prediction Result")
         st.success(result)
 
